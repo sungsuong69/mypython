@@ -137,6 +137,16 @@ cell_format4 = workbook.add_format()
 cell_format4.set_align('center')
 cell_format4.set_bottom(1)
 
+col0_cell_format4 = workbook.add_format()
+#cell_format4.set_bold()
+col0_cell_format4.set_align('center')
+col0_cell_format4.set_left(1)
+
+col8_cell_format4 = workbook.add_format()
+#cell_format4.set_bold()
+col8_cell_format4.set_align('center')
+col8_cell_format4.set_right(1)
+
 cell_format5 = workbook.add_format()
 cell_format5.set_align('left')
 
@@ -204,14 +214,14 @@ for table in tables:
             worksheet.write(excel_row+3,   col4,  'OV',cell_format2)
             worksheet.write(excel_row+4,   col4,  'UN',cell_format4)
 
-            worksheet.write_blank(excel_row+4,   col0,  ''  ,cell_format4)
+            worksheet.write_blank(excel_row+4,   col0,  ''  ,col0_cell_format4)
             worksheet.write_blank(excel_row+4,   col1,  ''  ,cell_format4)
             worksheet.write_blank(excel_row+4,   col2,  ''  ,cell_format4)
             worksheet.write_blank(excel_row+4,   col3,  ''  ,cell_format4)
             worksheet.write_blank(excel_row+4,   col5,  ''  ,cell_format4)
             worksheet.write_blank(excel_row+4,   col6,  ''  ,cell_format4)
             worksheet.write_blank(excel_row+4,   col7,  ''  ,cell_format4)
-            worksheet.write_blank(excel_row+4,   col8,  ''  ,cell_format4)
+            worksheet.write_blank(excel_row+4,   col8,  ''  ,col8_cell_format4)
             game_num  += 1
             excel_row += 4
         excel_row += 1
