@@ -8,36 +8,70 @@ import xlsxwriter
 workbook = xlsxwriter.Workbook('game_schedule.xlsx')
 worksheet = workbook.add_worksheet()
 
-html_page = urllib.urlopen("http://www.python.org/index.html")
-
 # Make soup
 try:
-    #resp = urllib.urlopen("http://www.donbest.com/ncaaf/odds/")
-    resp = urllib.urlopen("http://www.donbest.com/nfl/odds/")
+    #resp = urllib.urlopen("http://www.donbest.com/nfl/odds/")
+    resp = urllib.urlopen("http://www.donbest.com/ncaaf/odds/")
 except URLError as e:
     print 'An error occured fetching %s \n %s' % (url, e.reason)   
+
 soup = BeautifulSoup(resp.read(),features="html.parser")
 
+# Get table
+try:
+    tables = soup.find_all('table')
+except AttributeError as e:
+    print 'No tables found, exiting'
+
+
+#----------------------------------------------------------------------
+def mysortbytime(elem):
+#----------------------------------------------------------------------
+    """taking elem as datetime as (dayofweek,month,dayofmonth,time,ampm) = elem.split() """
+    (dayofweek,month,dayofmonth,time,ampm) = elem.split()
+    civilian_time = time + " " + ampm
+    (hour,min) = to_military_time(civilian_time).split(':')
+    return int(hour)
+
+def to_military_time(civilian_time):
+    (time,ampm) = civilian_time.split()
+    (hour,min) = time.split(':')
+    hour = int(hour)
+    if re.search(r'PM',civilian_time):
+       hour += 12 
+    return str(hour) + ":" + min 
+
+#----------------------------------------------------------------------
 def fix_odd(game_odd):
+#----------------------------------------------------------------------
     """ fix odd """
     if re.search(r'\d',game_odd):
         return float(game_odd)
-    
+    return game_odd 
+
+#----------------------------------------------------------------------
 def to_pacific_time_zone(game_time):
+#----------------------------------------------------------------------
     """ convert estern time to pacific time zone """
     (time,ampm) = game_time.split()
     (hour,min) = time.split(':')
     hour = int(hour)
-    if re.search(r'pm', game_time):
+    print game_time
+    if re.search(r'PM', game_time):
        print "hour = ", hour
        hour += 12
 
     hour -= 3
-    if hour > 12:
-        ampm = "am"
+    if hour < 12:
+        ampm = "AM"
+    else:
+        hour -= 12
+        ampm = "PM"
     return str(hour)+":"+min+" "+ampm            
 
+#----------------------------------------------------------------------
 def parse_rows(rows):
+#----------------------------------------------------------------------
     """ Get data from rows """
     results = defaultdict(list)
     row_num = 0
@@ -76,11 +110,11 @@ def parse_rows(rows):
                             home_team = re.sub(r'\s+\w+$','',span_tags[1].get_text().upper())
  
                     if col_num > 2: 
-                        time_tag  = data.find('div',id=re.compile("_Div_Time_1_"))
-                        away_line_tags  = data.find_all('div',id=re.compile("_Div_Line_1_.*?_" + away_rot + ".*?119"))
-                        home_line_tags  = data.find_all('div',id=re.compile("_Div_Line_1_.*?_" + home_rot + ".*?119"))
-                        line_tags  = data.find_all('div',id=re.compile("_Div_Line_1_" + ".*?119"))
-                        class_tags  = data.find_all('div',id=re.compile("_Div_Line_1_.*?119"))
+                        time_tag  = data.find('div',id=re.compile("_Div_Time_\d+_"))
+                        away_line_tags  = data.find_all('div',id=re.compile("_Div_Line_\d+_.*?_" + away_rot + ".*?37"))
+                        home_line_tags  = data.find_all('div',id=re.compile("_Div_Line_\d+_.*?_" + home_rot + ".*?37"))
+                        line_tags  = data.find_all('div',id=re.compile("_Div_Line_\d+_" + ".*?37"))
+                        class_tags  = data.find_all('div',id=re.compile("_Div_Line_\d+_.*?37"))
                         if time_tag:
                             game_time = time_tag.get_text()
                         
@@ -102,12 +136,6 @@ def parse_rows(rows):
         row_num += 1;         
     return results
 
-# Get table
-try:
-    tables = soup.find_all('table')
-except AttributeError as e:
-    print 'No tables found, exiting'
-
 #print ("table size = ", len(tables))
 
 
@@ -122,6 +150,7 @@ cell_format1.set_bg_color(bg_color)
 #cell_format1.set_bold()
 cell_format1.set_bottom(1)
 cell_format1.set_top(1)
+cell_format1.set_align('center')
 
 col0_cell_format1    = workbook.add_format()       # Set properties later.
 col0_cell_format1.set_bg_color(bg_color)
@@ -155,7 +184,7 @@ col0_cell_format4 = workbook.add_format()
 #cell_format4.set_bold()
 col0_cell_format4.set_align('center')
 col0_cell_format4.set_left(1)
-cell_format4.set_bottom(1)
+col0_cell_format4.set_bottom(1)
 
 col8_cell_format4 = workbook.add_format()
 #cell_format4.set_bold()
@@ -164,6 +193,11 @@ col8_cell_format4.set_right(1)
 
 cell_format5 = workbook.add_format()
 cell_format5.set_align('left')
+
+col8_cell_format5 = workbook.add_format()
+col8_cell_format5.set_align('center')
+col8_cell_format5.set_right(1)
+col8_cell_format5.set_bottom(1)
 
 col0 = 0
 col1 = 1
@@ -187,14 +221,15 @@ for table in tables:
     table_data = parse_rows(rows)
 
     # Print data
-    for game_date in sorted(table_data.iterkeys(),reverse=True):
-        print game_date
+    for game_datetime in sorted(table_data, key=mysortbytime):
+        print game_datetime
         col = 0
-        (dayofweek,month,dayofmonth,time,ampm) = game_date.split()
+        (dayofweek,month,dayofmonth,time,ampm) = game_datetime.split()
         game_time = time + " " + ampm
         game_time = to_pacific_time_zone(game_time)
         (time,ampm) = game_time.split()
         game_time = re.sub(r'\s+','',game_time)
+        dayofweek = re.sub(r'\W','',dayofweek)
         worksheet.set_column(col0,col0, 4)
         worksheet.set_column(col1,col1, 4)
         worksheet.set_column(col2, col2, 4)
@@ -211,19 +246,20 @@ for table in tables:
         for n_col in range(1,8):
             worksheet.write_blank(excel_row, col+n_col,'', cell_format1)        
             #worksheet.set_column(col+1, col+1, 30)
+        worksheet.write(excel_row, col4,dayofweek.upper(), cell_format1)        
         worksheet.write_blank(excel_row, col8,'', col8_cell_format1)        
 
         worksheet.write(excel_row+1,   col0,  time)
-        for game in table_data[game_date]:
+        for game in table_data[game_datetime]:
             #worksheet.set_column(col+1, col+1, 30)
            
             
             worksheet.write(excel_row+1,   col3,  game_num+1,cell_format3)
-            worksheet.write(excel_row+1,   col4,  table_data[game_date][game_num]['away_team'],cell_format2)
-            worksheet.write(excel_row+1,   col5,  fix_odd(table_data[game_date][game_num]['away_odd']),cell_format5)
+            worksheet.write(excel_row+1,   col4,  table_data[game_datetime][game_num]['away_team'],cell_format2)
+            worksheet.write(excel_row+1,   col5,  fix_odd(table_data[game_datetime][game_num]['away_odd']),cell_format5)
             worksheet.write_blank(excel_row+1,   col8,  ''  ,col8_cell_format4)
-            worksheet.write(excel_row+2,   col4,  table_data[game_date][game_num]['home_team'],cell_format2)
-            worksheet.write(excel_row+2,   col5,  fix_odd(table_data[game_date][game_num]['home_odd']),cell_format5)
+            worksheet.write(excel_row+2,   col4,  table_data[game_datetime][game_num]['home_team'],cell_format2)
+            worksheet.write(excel_row+2,   col5,  fix_odd(table_data[game_datetime][game_num]['home_odd']),cell_format5)
             worksheet.write_blank(excel_row+2,   col8,  ''  ,col8_cell_format4)
             worksheet.write(excel_row+3,   col4,  'OV',cell_format2)
             worksheet.write_blank(excel_row+3,   col8,  ''  ,col8_cell_format4)
@@ -236,7 +272,7 @@ for table in tables:
             worksheet.write_blank(excel_row+4,   col5,  ''  ,cell_format4)
             worksheet.write_blank(excel_row+4,   col6,  ''  ,cell_format4)
             worksheet.write_blank(excel_row+4,   col7,  ''  ,cell_format4)
-            worksheet.write_blank(excel_row+4,   col8,  ''  ,col8_cell_format4)
+            worksheet.write_blank(excel_row+4,   col8,  ''  ,col8_cell_format5)
             game_num  += 1
             excel_row += 4
         excel_row += 1
