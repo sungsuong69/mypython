@@ -9,7 +9,8 @@ import xlsxwriter
 league = 'nfl'
 
 if league == 'nfl':
-   url = 'http://www.donbest.com/nfl/odds/'
+   #url = 'http://www.donbest.com/nfl/odds/'
+   url = 'http://www.donbest.com/nfl/odds/20180925.html'
 else:
    url = 'http://www.donbest.com/ncaaf/odds/'
    #url = 'http://www.donbest.com/ncaaf/odds/20180913.html'
@@ -166,6 +167,7 @@ def parse_rows(rows,league='nfl'):
                                 home_odd  = home_line_tag.get_text()
                     col_num += 1
                 print (title)
+                date = re.sub(r'\(.*?\)','',date)
                 print (re.sub(r'^\s+','',date) + ' ' + game_time)
                 print (away_rot + " | " + away_team + " | " + away_odd)
                 print (home_rot + " | " + home_team + " | " + home_odd)
